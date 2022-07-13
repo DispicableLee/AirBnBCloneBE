@@ -99,9 +99,24 @@ router.get("/search/all/reviews/:listingid", async(req,res)=>{
 //PUT - edit a review
 
 //DELETE - delete a user
-
+router.delete("/delete/:userid", async(req,res)=>{
+    const userid = req.params.userid;
+    const userObjectId = ObjectID(userid);
+    const user = await User.findById(userObjectId);
+    if(user){
+        await User.findByIdAndDelete(userObjectId);
+        return res.status(200).send(user);
+    }else{
+        return res.status(400).send({})
+    }
+})
 //DELETE - delete a listing
-
+router.delete("/delete/:listingid/:userid",async(req,res)=>{
+    //define user first to update later======================================
+    const userid = req.params.userid;
+    const userObjectId = ObjectID(userid);
+    const user = await User
+})
 //DELETE - delete a review
 
 module.exports = router;
