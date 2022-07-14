@@ -115,8 +115,61 @@ router.delete("/delete/:listingid/:userid",async(req,res)=>{
     //define user first to update later======================================
     const userid = req.params.userid;
     const userObjectId = ObjectID(userid);
-    const user = await User
+    const user = await User.findById(userObjectId);
+    const uList = user.listings;
+    //find the listing=================================
+    const listingid = req.params.listingid;
+    const listingObjectId = ObjectID(listingid);
+    if(uList.includes(listingObjectId)){
+        await Listing.findByIdAndDelete(listingObjectId);
+        //now update the user.listings
+        const newUlist = uList.filter((id)=>!(listingid.equals(id)))
+        const userQuery = {_id:user._id};
+        const userUpdatedValues = {
+            username: user.username,
+            email: user.email,
+            listings: newUlist,
+            earnings: user.earnings,
+        }
+        await User.findOneAndUpdate(userQuery, userUpdatedValues);
+        return res.status(200).send(userUpdatedValues);
+    }else{
+        return res.status(400).send({})
+    }
 })
 //DELETE - delete a review
+router.delete("/delete/:listingid/:reviewid",async(req,res)=>{
+    const listingid = req.params.listingid;
+    const listingObjectId = ObjectID(listingid);
+    const listing = await Listing.findById(listingObjectId);
+    const listRev = listing.reviews;
+    if(listing){
+        const reviewid = req.params.reviewid;
+        const reviewObjectId = ObjectID(reviewid);
+        if(listRev.includes(reviewObjectId)){
+            const newRevlist = listRev.filter((id)=>!(reviewid.equals(id)));
+            //update the review array
+            const listingQuery = {_id:listing._id};
+            const listingUpdatedvalues = {
+                images: listing.images,
+                listing_name: listing.listing_name,
+                location: listing.location,
+                description: listing.description,
+                price_per_night: listing.price_per_night,
+                amenities: listing.amenities,
+                owner: listing.owner,
+                reviews: newRevlist,
+                dates: listing.dates,
+                days_reserved: listing.days_reserved
+            }
+            await Listing.findOneAndUpdate(listingQuery, listingUpdatedvalues);
+            return res.status(200).send(listingUpdatedvalues);
+        }else{
+            return res.status(400).send({})
+        }
+    }else{
+        return res.status(400).send({})
+    }
+})
 
 module.exports = router;
