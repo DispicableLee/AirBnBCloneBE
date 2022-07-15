@@ -96,7 +96,26 @@ router.get("/search/all/reviews/:listingid", async(req,res)=>{
 
 //PUT - update a listing
 
-//PUT - edit a review
+//PUT - edit a review's contents
+router.put("/update/content/:reviewid", async(req,res)=>{
+    const reviewid = req.params.reviewid;
+    const reviewObjectId = ObjectID(reviewid);
+    const review = await Review.findById(reviewObjectId);
+    if(review){
+        //update the review's contents
+        const reviewQuery = {_id:review._id};
+        const reviewUpdatedValues = {
+            user: review.user,
+            content: req.body,
+            rating: review.rating,
+            date: review.date
+        }
+        await Review.findOneAndUpdate(reviewQuery, reviewUpdatedValues);
+        return res.status(200).send(reviewUpdatedValues)
+    }else{
+        return res.status(400).send({})
+    }
+})
 
 //DELETE - delete a user
 router.delete("/delete/:userid", async(req,res)=>{
