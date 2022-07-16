@@ -92,7 +92,29 @@ router.get("/search/all/reviews/:listingid", async(req,res)=>{
         return res.status(400).send({})
     }
 })
-//PUT - update user info
+
+//===============================================UPDATES======================================
+//PUT - update user's earnings
+router.put("/update/earnings/:userid/:earning", async(req,res)=>{
+    const userid = req.params.userid;
+    const userObjectId = ObjectID(userid);
+    const user = await User.findById(userObjectId);
+    if(user){
+        const earning = req.params.earning;
+        const uEarn = user.earnings;
+        const newEarn = earning + uEarn;
+        const userQuery = {_id:user._id};
+        const userUpdatedValues = {
+            username: user.username,
+            email: user.email,
+            listings: user.listings,
+            earnings: newEarn,
+        }
+        await User.findOneAndUpdate(userQuery, userUpdatedValues);
+    }else{
+        return res.status(400).send
+    }
+});
 
 //PUT - update a listing
 
