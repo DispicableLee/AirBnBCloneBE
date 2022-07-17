@@ -6,6 +6,7 @@ const UserSchema = new Schema({
     email: String,
     listings: Array,
     earnings: Number,
+    reservations: Array
 })
 
 module.exports = mongoose.model('User', UserSchema);

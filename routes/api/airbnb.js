@@ -2,7 +2,9 @@ const router = require("express").Router();
 const User = require("../../models/User");
 const Review = require("../../models/Review");
 const Listing = require("../../models/Listing");
+const Reservations = require("../../models/Reservations");
 const ObjectID = require("mongodb").ObjectId;
+
 //POST - create a user
 router.post("/create/user", async (req,res)=>{
     const user = await User.findOne({email:req.body.email})
@@ -213,4 +215,139 @@ router.delete("/delete/:listingid/:reviewid",async(req,res)=>{
     }
 })
 
+// POST: create a new reservation (you should check if user can even make reservation)
+// aka is the date they entered even available for that listing?
+//===============================================TEST LATER==============================================
+router.post("/create/new/reservation/:userid/:listingid", async (req,res)=>{
+    const userid = req.params.userid;
+    const userObjectId = ObjectID(userid);
+    const user = await User.findById(userObjectId);
+    const userReserves = user.reservations;
+    if(user){
+        const listingid = req.params.listingid;
+        const listingObjectId = ObjectID(listingid);
+        const listing = await Listing.findById(listingObjectId);
+        const listingDates = listing.dates;
+        if(listing){
+            //create a new reservation, but do not save it yet
+            const newReserve = new Reservations(req.body);
+            const resDate = newReserve.dates;
+            if(listingDates.includes(resDate)){
+                return res.status(400).send({})
+            }else{
+                newReserve.save().catch(err=>console.log(err))
+                //update listing schemas
+                const listingReserves = listing.reservations;
+                listingReserves.unshift(newReserve._id);
+                listingDates.unshift(resDate)
+                userReserves.unshift(newReserve._id);
+                const listingQuery = {_id:listing._id}
+                const listingUpdatedvalues = {
+                    images: listiing.images,
+                    listing_name: listing.listing_name,
+                    location: listing.location,
+                    description: listing.description,
+                    price_per_night: listing.price_per_night,
+                    amenities: listing.amenities,
+                    owner: listing.owner,
+                    reviews: listing.reviews,
+                    dates: listingDates,
+                    days_reserved: listing.days_reserved,
+                    reservations: listingReserves
+                }
+                await Listing.findOneAndUpdate(listingQuery,listingUpdatedvalues)
+                //update userschema
+                const userQuery = {_id:user._id};
+                const userUpdatedValues = {
+                    username: user.username,
+                    email: user.email,
+                    listings: user.listings,
+                    earnings: user.earnings,
+                    reservations: userReserves
+                }
+                await User.findOneAndUpdate(userQuery, userUpdatedValues)
+                return res.status(200).send(newReserve)
+            }
+        }else{
+            res.status(400).send({})
+        }
+    }else{
+        return res.status(400).send({})
+    }
+})
+// GET: get all reservations that user has booked
+router.get("search/all/reservations/:userid", async(req,res)=>{
+    const userid = req.params.userid;
+    const userObjectId = ObjectID(userid);
+    const user = await User.findById(userObjectId);
+    if(user){
+        const sentList = await Reservations.find({user_id:req.params.userid})
+        return res.status(200).send(sentList)
+    }else{
+        return res.status(400).send({})
+    }
+})
+
+// GET: get the total profit that a listing has generated from every booking 
+
+// GET: get the total earnings an user has generated from all listings they own
+//this means all the reservations that were booked from each listing
+
+// PUT: user is updating a current reservation
+
+// DELETE: user has cancelled a  reservation from a listing
+router.delete("/delete/reservation/:userid/:listingid/:resid", async(req,res)=>{
+    const userid = req.params.userid;
+    const userObjectId = ObjectID(userid);
+    const user = await User.findById(userObjectId);
+    const userReserves = user.reservations
+    if(user){
+        const listingid = req.params.listingid;
+        const listingObjectId = ObjectID(listingid);
+        const listing = await Listing.findById(listingObjectId);
+        const listingReserves = listing.reservations
+        if(listing){
+            const resid = req.params.reservationid;
+            const resObjectId = ObjectID(resid);
+            const res = await Reservations.findById(resObjectId);
+            if(listingReserves.includes(resObjectId) && userReserves.includes(resObjectId)){
+                await Reservations.findByIdAndDelete(resObjectId);
+                //update the listing and user schemas
+                const listingQuery = {_id:listing._id};
+                const newReserves = listingReserves.filter((id)=>!(resObjectId.equals(id)));
+                const userQuery = {_id:user._id};
+                const newUreserves = userReserves.filter((id)=>!(resObjectId.equals(id)));
+                const listingUpdatedvalues = {
+                    images: listing.images,
+                    listing_name: listing.listing_name,
+                    location: listing.location,
+                    description: listing.description,
+                    price_per_night: listing.price_per_night,
+                    amenities: listing.amenities,
+                    owner: listing.owner,
+                    reviews: listing.reviews,
+                    dates: listing.dates,
+                    days_reserved: listing.days_reserved,
+                    reservations: newReserves
+                }
+                const userUpdatedValues = {
+                    username: user.username,
+                    email: user.email,
+                    listings: user.listings,
+                    earnings: user.earnings,
+                    reservations: newUreserves
+                }
+                await Listing.findOneAndUpdate(listingQuery, listingUpdatedvalues);
+                await User.findOneAndUpdate(userQuery,userUpdatedValues);
+                return res.status(200).send(res);
+            }else{
+                return res.status(400).send({})
+            }
+        }else{
+            return res.status(400).send({})
+        }
+    }else{
+        return res.status(400).send({})
+    }
+})
 module.exports = router;
