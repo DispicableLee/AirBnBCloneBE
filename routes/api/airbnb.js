@@ -51,6 +51,19 @@ router.post("/create/listing/:userid", async(req,res)=>{
         return res.status(400).send({})
     }
 })
+
+//GET - get a single listing document
+//http://localhost:5002/api/v1/airbnb/search/single/:listingid
+router.get("/search/single/:listingid", async(req,res)=>{
+    const listingid = req.params.listingid;
+    const listingObjectId = ObjectID(listingid);
+    const listing = await Listing.findById(listingObjectId);
+    if(listing){
+        return res.status(200).send(listing);
+    }else{
+        return res.status(400).send({})
+    }
+})
 //POST - create a review
 //http://localhost:5002/api/v1/airbnb/create/review/:listingid
 router.post("/create/review/:listingid", async(req,res)=>{
@@ -90,17 +103,21 @@ router.get("/search/all/listings", async(req,res)=>{
     return res.status(200).send(listings)
 })
 
-//GET - get all reviews for a listing
+//GET - get all reviews for a listing and converts them into actual documents
 //http://localhost:5002/api/v1/airbnb/search/all/reviews/:listingid
 router.get("/search/all/reviews/:listingid", async(req,res)=>{
     const listingid = req.params.listingid;
     const listingObjectId = ObjectID(listingid);
     const listing = await Listing.findById(listingObjectId);
     if(listing){
-        const allReviews = listing.reviews;
-        if(allReviews.length ==0){
+        const allReviews = [];
+        if(listing.reviews.length ==0){
             console.log("there are no reviews for this listing")
         }else{
+            for(var i = 0;i<listing.reviews.length;i++){
+                const review = await Review.findById(listing.reviews[i])
+                allReviews.unshift(review)
+            }   
             return res.status(200).send(allReviews);
         }
     }else{
