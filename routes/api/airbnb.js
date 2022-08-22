@@ -30,6 +30,18 @@ router.get("/search/user/:userid", async(req,res)=>{
         return res.status(400).send({})
     }
 })
+
+//GET - searches for a user from their email
+//http://localhost:5002/api/v1/airbnb/search/userbyemail/:email
+router.get("/search/userbyemail/:email", async(req,res)=>{
+    const email = req.params.email;
+    const user = await User.findOne({email: email})
+    if(user){
+        return res.status(200).send(user)
+    }else{
+        return res.status(400).send({})
+    }
+})
 //POST - create a listing
 //http://localhost:5002/api/v1/airbnb/create/listing/:userid
 router.post("/create/listing/:userid", async(req,res)=>{
