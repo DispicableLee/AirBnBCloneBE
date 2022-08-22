@@ -17,6 +17,19 @@ router.post("/create/user", async (req,res)=>{
         return res.status(200).send(newUser);
     }
 })
+
+//GET - searches for a user from the userObjectID
+//http://localhost:5002/api/v1/airbnb/search/user/:userid
+router.get("/search/user/:userid", async(req,res)=>{
+    const userid = req.params.userid;
+    const userObjectId = ObjectID(userid)
+    const user = await User.findById(userObjectId);
+    if(user){
+        return res.status(200).send(user)
+    }else{
+        return res.status(400).send({})
+    }
+})
 //POST - create a listing
 //http://localhost:5002/api/v1/airbnb/create/listing/:userid
 router.post("/create/listing/:userid", async(req,res)=>{
@@ -70,9 +83,12 @@ router.post("/create/review/:listingid", async(req,res)=>{
     const listingid = req.params.listingid;
     const listingObjectId = ObjectID(listingid);
     const listing = await Listing.findById(listingObjectId);
+    console.log("this is the listing: ", listing);
+    console.log("this is the req.body: ", req.body);
     if(listing){
         const newReview = new Review(req.body);
         newReview.save().catch(err=>console.log(err))
+        console.log("the new review has been saved")
         const newReviewId = newReview._id
         const listingQuery = {_id: listing._id}
         const listingReviewArray = listing.reviews;
@@ -90,6 +106,7 @@ router.post("/create/review/:listingid", async(req,res)=>{
                 days_reserved: listing.days_reserved
         }
         await Listing.findOneAndUpdate(listingQuery, updatedListing);
+        console.log("this is the new review", newReview)
         return res.status(200).send(newReview);
     }else{
         return res.status(400).send({})
